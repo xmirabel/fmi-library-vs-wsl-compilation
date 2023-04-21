@@ -185,74 +185,87 @@ include(ExternalProject)
 # The *_POSTFIX variables are set because it makes it easier to determine the name of
 # the lib expat will produce at configure time. Note that Expat has some special handling
 # for it for MSVC which this in effect negates. https://github.com/libexpat/libexpat/pull/316
-set(EXPAT_SETTINGS
-    -DEXPAT_BUILD_TOOLS:BOOLEAN=OFF
-    -DEXPAT_BUILD_EXAMPLES:BOOLEAN=OFF
-    -DEXPAT_BUILD_TESTS:BOOLEAN=OFF
-    -DEXPAT_SHARED_LIBS:BOOLEAN=OFF
-    -DEXPAT_DTD:BOOLEAN=OFF
-    -DEXPAT_NS:BOOLEAN=OFF
-    -DEXPAT_MSVC_STATIC_CRT:BOOLEAN=${FMILIB_BUILD_WITH_STATIC_RTLIB}
-    -DCMAKE_DEBUG_POSTFIX:STRING=
-    -DCMAKE_RELEASE_POSTFIX:STRING=
-    -DCMAKE_MINSIZEREL_POSTFIX:STRING=
-    -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=
-    -DCMAKE_POSITION_INDEPENDENT_CODE:BOOLEAN=ON
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
-    -DCMAKE_LINK_LIBRARY_FLAG:STRING=${CMAKE_LINK_LIBRARY_FLAG}
-    -DCMAKE_MODULE_LINKER_FLAGS:STRING=${CMAKE_MODULE_LINKER_FLAGS}
-    -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
-    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/ExpatEx/install
-)
+#######set(EXPAT_SETTINGS
+#######    -DEXPAT_BUILD_TOOLS:BOOLEAN=OFF
+#######    -DEXPAT_BUILD_EXAMPLES:BOOLEAN=OFF
+#######    -DEXPAT_BUILD_TESTS:BOOLEAN=OFF
+#######    -DEXPAT_SHARED_LIBS:BOOLEAN=OFF
+#######    -DEXPAT_DTD:BOOLEAN=OFF
+#######    -DEXPAT_NS:BOOLEAN=OFF
+#######    -DEXPAT_MSVC_STATIC_CRT:BOOLEAN=${FMILIB_BUILD_WITH_STATIC_RTLIB}
+#######    -DCMAKE_DEBUG_POSTFIX:STRING=
+#######    -DCMAKE_RELEASE_POSTFIX:STRING=
+#######    -DCMAKE_MINSIZEREL_POSTFIX:STRING=
+#######    -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=
+#######    -DCMAKE_POSITION_INDEPENDENT_CODE:BOOLEAN=ON
+#######    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+#######    -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
+#######    -DCMAKE_LINK_LIBRARY_FLAG:STRING=${CMAKE_LINK_LIBRARY_FLAG}
+#######    -DCMAKE_MODULE_LINKER_FLAGS:STRING=${CMAKE_MODULE_LINKER_FLAGS}
+#######    -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
+#######    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/ExpatEx/install
+#######)
+#######
+#######ExternalProject_Add(
+#######    expatex
+#######    PREFIX "${FMIXML_EXPAT_DIR}"
+#######    SOURCE_DIR "${FMIXML_EXPAT_DIR}"
+#######    CMAKE_CACHE_ARGS ${EXPAT_SETTINGS}
+#######    BINARY_DIR ${CMAKE_BINARY_DIR}/ExpatEx
+#######    INSTALL_DIR ${CMAKE_BINARY_DIR}/ExpatEx/install
+#######    TMP_DIR     ${CMAKE_BINARY_DIR}/ExpatEx/tmp
+#######    STAMP_DIR   ${CMAKE_BINARY_DIR}/ExpatEx/stamp
+#######)
+#######
+#######ExternalProject_Add_Step(
+#######    expatex dependent_reconfigure
+#######    DEPENDEES configure
+#######    DEPENDERS build
+#######    COMMAND ${CMAKE_COMMAND} -E echo "Running:  ${CMAKE_COMMAND} -G \"${CMAKE_GENERATOR}\"  ${EXPAT_SETTINGS} ${FMIXML_EXPAT_DIR}"
+#######    COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" ${EXPAT_SETTINGS} "${FMIXML_EXPAT_DIR}"
+#######    DEPENDS ${CMAKE_BINARY_DIR}/CMakeCache.txt
+#######    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/ExpatEx
+#######)
+#######
+#######add_dependencies(expatex ${CMAKE_BINARY_DIR}/CMakeCache.txt ${FMILIBRARYHOME}/CMakeLists.txt)
+#######
+#######
+#######if(MSVC)
+#######    # Expat uses special naming with MSVC, which is mirrored here.
+#######    set(EXPAT_LIB_PREFIX lib)
+#######else()
+#######    set(EXPAT_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
+#######endif()
+#######
+#######set(expatlib "${CMAKE_BINARY_DIR}/ExpatEx/${CMAKE_CFG_INTDIR}/${EXPAT_LIB_PREFIX}expat${CMAKE_STATIC_LIBRARY_SUFFIX}")
+#######
+#######add_library(expat STATIC IMPORTED)
+#######
+#######set_target_properties(
+#######    expat PROPERTIES
+#######        IMPORTED_LOCATION "${expatlib}"
+#######)
+#######
+#######add_dependencies(expat expatex)
+#######
+#######if(FMILIB_INSTALL_SUBLIBS)
+#######    install(FILES
+#######    "${CMAKE_BINARY_DIR}/ExpatEx/install/lib/${CMAKE_STATIC_LIBRARY_PREFIX}expat${CMAKE_STATIC_LIBRARY_SUFFIX}"
+#######    DESTINATION lib)
+#######endif()
+#######
+#######set(EXPAT_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/ExpatEx/install/include)
 
-ExternalProject_Add(
-    expatex
-    PREFIX "${FMIXML_EXPAT_DIR}"
-    SOURCE_DIR "${FMIXML_EXPAT_DIR}"
-    CMAKE_CACHE_ARGS ${EXPAT_SETTINGS}
-    BINARY_DIR ${CMAKE_BINARY_DIR}/ExpatEx
-    INSTALL_DIR ${CMAKE_BINARY_DIR}/ExpatEx/install
-    TMP_DIR     ${CMAKE_BINARY_DIR}/ExpatEx/tmp
-    STAMP_DIR   ${CMAKE_BINARY_DIR}/ExpatEx/stamp
-)
+### Set the options of expat and add it as subdirectory.
+option(EXPAT_BUILD_TOOLS "build the xmlwf tool for expat library" OFF)
+option(EXPAT_BUILD_EXAMPLES "build the examples for expat library" OFF)
+option(EXPAT_BUILD_TESTS "build the tests for expat library" OFF)
+option(EXPAT_SHARED_LIBS "build a shared expat library" OFF)
+option(EXPAT_DTD "Define to make parameter entity parsing functionality available" OFF)
+option(EXPAT_NS "Define to make XML Namespaces functionality available" OFF)
+add_subdirectory(ThirdParty/Expat/expat-2.4.8)
 
-ExternalProject_Add_Step(
-    expatex dependent_reconfigure
-    DEPENDEES configure
-    DEPENDERS build
-    COMMAND ${CMAKE_COMMAND} -E echo "Running:  ${CMAKE_COMMAND} -G \"${CMAKE_GENERATOR}\"  ${EXPAT_SETTINGS} ${FMIXML_EXPAT_DIR}"
-    COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" ${EXPAT_SETTINGS} "${FMIXML_EXPAT_DIR}"
-    DEPENDS ${CMAKE_BINARY_DIR}/CMakeCache.txt
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/ExpatEx
-)
-
-
-if(MSVC)
-    # Expat uses special naming with MSVC, which is mirrored here.
-    set(EXPAT_LIB_PREFIX lib)
-else()
-    set(EXPAT_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
-endif()
-
-set(expatlib "${CMAKE_BINARY_DIR}/ExpatEx/${CMAKE_CFG_INTDIR}/${EXPAT_LIB_PREFIX}expat${CMAKE_STATIC_LIBRARY_SUFFIX}")
-
-add_library(expat STATIC IMPORTED)
-
-set_target_properties(
-    expat PROPERTIES
-        IMPORTED_LOCATION "${expatlib}"
-)
-
-add_dependencies(expat expatex)
-
-if(FMILIB_INSTALL_SUBLIBS)
-    install(FILES
-    "${CMAKE_BINARY_DIR}/ExpatEx/install/lib/${CMAKE_STATIC_LIBRARY_PREFIX}expat${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    DESTINATION lib)
-endif()
-
-set(EXPAT_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/ExpatEx/install/include)
+set(EXPAT_INCLUDE_DIRS ThirdParty/Expat/expat-2.4.8)
 
 include_directories(
     "${EXPAT_INCLUDE_DIRS}"
@@ -282,5 +295,6 @@ if(MSVC)
     target_compile_definitions(fmixml PUBLIC XML_STATIC)
 endif()
 target_link_libraries(fmixml ${JMUTIL_LIBRARIES} expat)
+add_dependencies(fmixml generate_numeric_types)
 
 endif(NOT FMIXMLDIR)
